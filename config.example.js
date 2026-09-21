@@ -1,0 +1,4 @@
+const CONFIG = {
+  SUPABASE_URL: 'https://tu-proyecto.supabase.co',
+  SUPABASE_ANON_KEY: 'tu-anon-key-aqui'
+}

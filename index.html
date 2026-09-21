@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduInsights Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <nav>
+    <span class="logo">EduInsights</span>
+    <div class="nav-links">
+      <button class="nav-btn active" onclick="showView('table')">Tabla</button>
+      <button class="nav-btn" onclick="showView('chart')">Gráfica</button>
+    </div>
+  </nav>
+
+  <!-- VISTA GRÁFICA -->
+  <div id="view-chart" class="view">
+    <div class="card">
+      <h2>Promedio de scores por nivel educativo del tutor</h2>
+      <p class="subtitle">¿Importa el nivel de estudios de los padres en el rendimiento?</p>
+      <canvas id="myChart"></canvas>
+    </div>
+  </div>
+
+  <!-- VISTA TABLA -->
+  <div id="view-table" class="view active">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2>Registros de estudiantes</h2>
+          <p class="subtitle">Datos en tiempo real desde Supabase. Edita una celda y se guarda automáticamente.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Agregar Registro
+        </button>
+      </div>
+      <div class="table-wrapper">
+        <table id="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Gender</th>
+              <th>Ethnicity</th>
+              <th>Parental Education</th>
+              <th>Lunch</th>
+              <th>Test Prep</th>
+              <th>Math</th>
+              <th>Reading</th>
+              <th>Writing</th>
+              <th>Pass Math</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <tr><td colspan="11" class="loading">Cargando datos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Controles de paginación -->
+      <div class="pagination">
+        <button class="pagination-btn" id="prev-btn" onclick="prevPage()" disabled>Anterior</button>
+        <span class="pagination-info">Página <span id="current-page">1</span> de <span id="total-pages">10</span></span>
+        <button class="pagination-btn" id="next-btn" onclick="nextPage()">Siguiente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE EDICIÓN -->
+  <div id="edit-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Editar Registro</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <form id="edit-form" class="modal-body">
+        <input type="hidden" id="edit-id" name="id">
+        
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="edit-gender">Gender</label>
+            <select id="edit-gender" name="gender" required>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-ethnicity">Ethnicity</label>
+            <select id="edit-ethnicity" name="ethnicity" required>
+              <option value="group A">Group A</option>
+              <option value="group B">Group B</option>
+              <option value="group C">Group C</option>
+              <option value="group D">Group D</option>
+              <option value="group E">Group E</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-parental-education">Parental Education</label>
+            <select id="edit-parental-education" name="parental_education" required>
+              <option value="some high school">Some High School</option>
+              <option value="high school">High School</option>
+              <option value="some college">Some College</option>
+              <option value="associate's degree">Associate's Degree</option>
+              <option value="bachelor's degree">Bachelor's Degree</option>
+              <option value="master's degree">Master's Degree</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-lunch">Lunch</label>
+            <select id="edit-lunch" name="lunch" required>
+              <option value="standard">Standard</option>
+              <option value="free/reduced">Free/Reduced</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-test-prep">Test Prep</label>
+            <select id="edit-test-prep" name="test_prep" required>
+              <option value="none">None</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-math-score">Math Score</label>
+            <input type="number" id="edit-math-score" name="math_score" min="0" max="100" required>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-reading-score">Reading Score</label>
+            <input type="number" id="edit-reading-score" name="reading_score" min="0" max="100" required>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-writing-score">Writing Score</label>
+            <input type="number" id="edit-writing-score" name="writing_score" min="0" max="100" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE AGREGAR REGISTRO -->
+  <div id="add-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Agregar Nuevo Registro</h3>
+        <button class="modal-close" onclick="closeAddModal()">&times;</button>
+      </div>
+      <form id="add-form" class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="add-id">ID</label>
+            <input type="number" id="add-id" name="id" required>
+          </div>
+
+          <div class="form-group">
+            <label for="add-gender">Gender</label>
+            <select id="add-gender" name="gender" required>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="add-ethnicity">Ethnicity</label>
+            <select id="add-ethnicity" name="ethnicity" required>
+              <option value="group A">Group A</option>
+              <option value="group B">Group B</option>
+              <option value="group C">Group C</option>
+              <option value="group D">Group D</option>
+              <option value="group E">Group E</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="add-parental-education">Parental Education</label>
+            <select id="add-parental-education" name="parental_education" required>
+              <option value="some high school">Some High School</option>
+              <option value="high school">High School</option>
+              <option value="some college">Some College</option>
+              <option value="associate's degree">Associate's Degree</option>
+              <option value="bachelor's degree">Bachelor's Degree</option>
+              <option value="master's degree">Master's Degree</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="add-lunch">Lunch</label>
+            <select id="add-lunch" name="lunch" required>
+              <option value="standard">Standard</option>
+              <option value="free/reduced">Free/Reduced</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="add-test-prep">Test Prep</label>
+            <select id="add-test-prep" name="test_prep" required>
+              <option value="none">None</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="add-math-score">Math Score</label>
+            <input type="number" id="add-math-score" name="math_score" min="0" max="100" required>
+          </div>
+
+          <div class="form-group">
+            <label for="add-reading-score">Reading Score</label>
+            <input type="number" id="add-reading-score" name="reading_score" min="0" max="100" required>
+          </div>
+
+          <div class="form-group">
+            <label for="add-writing-score">Writing Score</label>
+            <input type="number" id="add-writing-score" name="writing_score" min="0" max="100" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Agregar Registro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
