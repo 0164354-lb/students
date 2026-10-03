@@ -11,6 +11,10 @@ function showView(name) {
 
   if (name === 'chart') renderChart()
   if (name === 'table') renderTable(1) // Reiniciar a página 1 al cambiar a tabla
+  if (name === 'predict') {
+    document.getElementById('prediction-result').style.display = 'none'
+    document.getElementById('predict-form').reset()
+  }
 }
 
 // ─── TOAST ───────────────────────────────────────────────────────────────────
@@ -603,9 +607,59 @@ async function deleteRecord(id) {
   if (currentPage === totalPages && totalRecords % PAGE_SIZE === 1) {
     currentPage = Math.max(1, currentPage - 1)
   }
-  
+
   renderTable(currentPage) // Recargar la tabla manteniendo la página actual
 }
+
+// ─── PREDICCIÓN ───────────────────────────────────────────────────────────────
+document.getElementById('predict-form').addEventListener('submit', async (e) => {
+  e.preventDefault()
+
+  const formData = new FormData(e.target)
+
+  const payload = {
+    gender: formData.get('gender'),
+    ethnicity: formData.get('ethnicity'),
+    parental_education: formData.get('parental_education'),
+    lunch: formData.get('lunch'),
+    test_prep: formData.get('test_prep'),
+    reading_score: Number(formData.get('reading_score')),
+    writing_score: Number(formData.get('writing_score')),
+  }
+
+  try {
+    const response = await fetch(`${CONFIG.ML_API_URL}/predict`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      throw new Error('Error en la predicción')
+    }
+
+    const result = await response.text()
+    const passes = result === 'pasa'
+
+    const resultDiv = document.getElementById('prediction-result')
+    const badgeDiv = document.getElementById('prediction-badge')
+    const messageDiv = document.getElementById('prediction-message')
+
+    badgeDiv.textContent = passes ? '✓ APRUEBA' : '✗ REPRUEBA'
+    badgeDiv.className = passes ? 'pass' : 'fail'
+    messageDiv.textContent = passes
+      ? 'El modelo predice que este estudiante aprobará matemáticas.'
+      : 'El modelo predice que este estudiante reprobará matemáticas.'
+
+    resultDiv.style.display = 'block'
+    showToast('Predicción completada ✓')
+  } catch (error) {
+    console.error('Error en la predicción:', error)
+    showToast('Error al conectar con la API de ML. Asegúrate de que el servidor esté corriendo.')
+  }
+})
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
 renderTable(1) // Cargar tabla por defecto al iniciar
