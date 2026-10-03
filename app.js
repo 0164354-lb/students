@@ -29,6 +29,13 @@ function showToast(msg) {
 // ─── GRÁFICA ─────────────────────────────────────────────────────────────────
 // Promedio de math/reading/writing agrupado por parental_education
 async function renderChart() {
+  renderParentalEducationChart()
+  renderGenderChart()
+  renderTestPrepChart()
+  renderLunchChart()
+}
+
+async function renderParentalEducationChart() {
   const { data, error } = await db.from('students').select('parental_education, math_score, reading_score, writing_score')
   if (error) { console.error(error); return }
 
@@ -81,17 +88,202 @@ async function renderChart() {
     options: {
       responsive: true,
       plugins: {
-        legend: { 
-          labels: { 
+        legend: {
+          labels: {
             color: '#1d1d1f',
             font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' }
-          } 
+          }
         },
       },
       scales: {
-        x: { 
-          ticks: { color: '#86868b', font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' } }, 
-          grid: { color: '#e5e5ea' } 
+        x: {
+          ticks: { color: '#86868b', font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' } },
+          grid: { color: '#e5e5ea' }
+        },
+        y: {
+          ticks: { color: '#86868b', font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' } },
+          grid: { color: '#e5e5ea' },
+          min: 50, max: 80,
+          title: { display: true, text: 'Promedio', color: '#86868b', font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' } }
+        }
+      }
+    }
+  })
+}
+
+async function renderGenderChart() {
+  const { data, error } = await db.from('students').select('gender')
+  if (error) { console.error(error); return }
+
+  const genderCount = {}
+  data.forEach(r => {
+    genderCount[r.gender] = (genderCount[r.gender] || 0) + 1
+  })
+
+  const ctx = document.getElementById('genderChart').getContext('2d')
+
+  if (window._genderChart) window._genderChart.destroy()
+
+  window._genderChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['Male', 'Female'],
+      datasets: [{
+        data: [genderCount.male || 0, genderCount.female || 0],
+        backgroundColor: [
+          'rgba(0,113,227,0.8)',
+          'rgba(255,45,85,0.8)'
+        ],
+        borderColor: [
+          'rgba(0,113,227,1)',
+          'rgba(255,45,85,1)'
+        ],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: '#1d1d1f',
+            font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' }
+          }
+        }
+      }
+    }
+  })
+}
+
+async function renderTestPrepChart() {
+  const { data, error } = await db.from('students').select('test_prep, math_score, reading_score, writing_score')
+  if (error) { console.error(error); return }
+
+  const groups = {}
+  data.forEach(r => {
+    const key = r.test_prep
+    if (!groups[key]) groups[key] = { math: [], reading: [], writing: [] }
+    groups[key].math.push(r.math_score)
+    groups[key].reading.push(r.reading_score)
+    groups[key].writing.push(r.writing_score)
+  })
+
+  const avg = arr => Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+
+  const ctx = document.getElementById('testPrepChart').getContext('2d')
+
+  if (window._testPrepChart) window._testPrepChart.destroy()
+
+  window._testPrepChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Sin preparación', 'Con preparación'],
+      datasets: [
+        {
+          label: 'Matemáticas',
+          data: [avg(groups.none?.math || [0]), avg(groups.completed?.math || [0])],
+          backgroundColor: 'rgba(0,113,227,0.8)',
+          borderRadius: 8,
+        },
+        {
+          label: 'Lectura',
+          data: [avg(groups.none?.reading || [0]), avg(groups.completed?.reading || [0])],
+          backgroundColor: 'rgba(52,199,89,0.8)',
+          borderRadius: 8,
+        },
+        {
+          label: 'Escritura',
+          data: [avg(groups.none?.writing || [0]), avg(groups.completed?.writing || [0])],
+          backgroundColor: 'rgba(255,159,10,0.8)',
+          borderRadius: 8,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          labels: {
+            color: '#1d1d1f',
+            font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' }
+          }
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#86868b', font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' } },
+          grid: { color: '#e5e5ea' }
+        },
+        y: {
+          ticks: { color: '#86868b', font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' } },
+          grid: { color: '#e5e5ea' },
+          min: 50, max: 80,
+          title: { display: true, text: 'Promedio', color: '#86868b', font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' } }
+        }
+      }
+    }
+  })
+}
+
+async function renderLunchChart() {
+  const { data, error } = await db.from('students').select('lunch, math_score, reading_score, writing_score')
+  if (error) { console.error(error); return }
+
+  const groups = {}
+  data.forEach(r => {
+    const key = r.lunch
+    if (!groups[key]) groups[key] = { math: [], reading: [], writing: [] }
+    groups[key].math.push(r.math_score)
+    groups[key].reading.push(r.reading_score)
+    groups[key].writing.push(r.writing_score)
+  })
+
+  const avg = arr => Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+
+  const ctx = document.getElementById('lunchChart').getContext('2d')
+
+  if (window._lunchChart) window._lunchChart.destroy()
+
+  window._lunchChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Standard', 'Free/Reduced'],
+      datasets: [
+        {
+          label: 'Matemáticas',
+          data: [avg(groups.standard?.math || [0]), avg(groups['free/reduced']?.math || [0])],
+          backgroundColor: 'rgba(0,113,227,0.8)',
+          borderRadius: 8,
+        },
+        {
+          label: 'Lectura',
+          data: [avg(groups.standard?.reading || [0]), avg(groups['free/reduced']?.reading || [0])],
+          backgroundColor: 'rgba(52,199,89,0.8)',
+          borderRadius: 8,
+        },
+        {
+          label: 'Escritura',
+          data: [avg(groups.standard?.writing || [0]), avg(groups['free/reduced']?.writing || [0])],
+          backgroundColor: 'rgba(255,159,10,0.8)',
+          borderRadius: 8,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          labels: {
+            color: '#1d1d1f',
+            font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' }
+          }
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#86868b', font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' } },
+          grid: { color: '#e5e5ea' }
         },
         y: {
           ticks: { color: '#86868b', font: { family: '-apple-system, BlinkMacSystemFont, sans-serif' } },

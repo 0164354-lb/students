@@ -95,7 +95,11 @@ h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 8px; letter-spacing: -0
 .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 32px; font-weight: 400; }
 
 /* CHART */
-#myChart { max-height: 420px; }
+#myChart, #genderChart, #testPrepChart, #lunchChart { max-height: 420px; }
+
+#view-chart .card {
+  margin-bottom: 32px;
+}
 
 /* TABLE */
 .table-wrapper { overflow-x: auto; margin-top: 16px; border-radius: 12px; overflow: hidden; }
